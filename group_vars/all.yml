@@ -1,0 +1,22 @@
+---
+# Kubernetes Version
+k8s_version: "1.31"
+crio_version: "1.31"
+
+# Network Configuration
+pod_network_cidr: "10.244.0.0/16"
+service_cidr: "10.96.0.0/12"
+api_server_address: "192.168.10.20"
+
+# MetalLB Configuration
+metallb_version: "0.14.8"
+metallb_ip_range: "192.168.10.100-192.168.10.110"
+
+# Calico Version
+calico_version: "3.28.0"
+
+# Ingress Nginx Version
+ingress_nginx_version: "1.11.2"
+
+# Timezone
+timezone: "Asia/Seoul"

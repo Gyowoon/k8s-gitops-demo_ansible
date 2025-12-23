@@ -1,0 +1,31 @@
+---
+- name: Add CRI-O repository
+  copy:
+    dest: /etc/yum.repos.d/cri-o.repo
+    content: |
+      [cri-o]
+      name=CRI-O
+      baseurl=https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/rpm/
+      enabled=1
+      gpgcheck=1
+      gpgkey=https://pkgs.k8s.io/addons:/cri-o:/stable:/v{{ crio_version }}/rpm/repodata/repomd.xml.key
+
+- name: Install CRI-O
+  dnf:
+    name: cri-o
+    state: present
+
+- name: Start and enable CRI-O
+  systemd:
+    name: crio
+    state: started
+    enabled: yes
+    daemon_reload: yes
+
+- name: Configure crictl
+  copy:
+    dest: /etc/crictl.yaml
+    content: |
+      runtime-endpoint: unix:///var/run/crio/crio.sock
+      image-endpoint: unix:///var/run/crio/crio.sock
+      timeout: 10

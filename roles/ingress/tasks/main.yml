@@ -1,0 +1,14 @@
+---
+- name: Install Nginx Ingress Controller
+  become_user: ansible
+  command: kubectl apply -f https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v{{ ingress_nginx_version }}/deploy/static/provider/cloud/deploy.yaml
+  register: ingress_result
+  changed_when: "'created' in ingress_result.stdout or 'configured' in ingress_result.stdout"
+
+- name: Wait for Ingress Controller
+  become_user: ansible
+  command: kubectl wait --for=condition=Ready pods -l app.kubernetes.io/component=controller -n ingress-nginx --timeout=180s
+  retries: 3
+  delay: 30
+  register: ingress_wait
+  until: ingress_wait.rc == 0

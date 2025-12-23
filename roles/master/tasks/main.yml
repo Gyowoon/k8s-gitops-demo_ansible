@@ -1,0 +1,46 @@
+---
+- name: Check if cluster is already initialized
+  stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_init_check
+
+- name: Initialize Kubernetes cluster
+  command: >
+    kubeadm init
+    --apiserver-advertise-address={{ api_server_address }}
+    --pod-network-cidr={{ pod_network_cidr }}
+    --cri-socket=unix:///var/run/crio/crio.sock
+  when: not kubeadm_init_check.stat.exists
+  register: kubeadm_init_output
+
+- name: Create .kube directory for ansible user
+  file:
+    path: /home/ansible/.kube
+    state: directory
+    owner: ansible
+    group: ansible
+    mode: '0755'
+
+- name: Copy admin.conf to ansible user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ansible/.kube/config
+    remote_src: yes
+    owner: ansible
+    group: ansible
+    mode: '0644'
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command_output
+  changed_when: false
+
+- name: Save join command
+  set_fact:
+    kubeadm_join_command: "{{ join_command_output.stdout }} --cri-socket=unix:///var/run/crio/crio.sock"
+
+- name: Store join command for workers
+  copy:
+    content: "{{ kubeadm_join_command }}"
+    dest: /tmp/kubeadm_join_command.sh
+    mode: '0755'

@@ -1,0 +1,40 @@
+---
+- name: Reset Kubernetes Cluster
+  hosts: k8s_cluster
+  become: yes
+  tasks:
+    - name: Reset kubeadm
+      command: kubeadm reset -f --cri-socket=unix:///var/run/crio/crio.sock
+      ignore_errors: yes
+
+    - name: Remove CNI configuration
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/cni/net.d
+        - /var/lib/cni
+        - /var/lib/calico
+
+    - name: Remove Kubernetes directories
+      file:
+        path: "{{ item }}"
+        state: absent
+      loop:
+        - /etc/kubernetes
+        - /var/lib/kubelet
+        - /var/lib/etcd
+        - /home/ansible/.kube
+
+    - name: Restart CRI-O
+      systemd:
+        name: crio
+        state: restarted
+
+    - name: Clean iptables
+      shell: |
+        iptables -F
+        iptables -t nat -F
+        iptables -t mangle -F
+        iptables -X
+      ignore_errors: yes

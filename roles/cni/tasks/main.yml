@@ -1,0 +1,33 @@
+---
+- name: Install Tigera Operator
+  become_user: ansible
+  command: kubectl create -f https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/tigera-operator.yaml
+  register: tigera_result
+  failed_when: tigera_result.rc != 0 and 'already exists' not in tigera_result.stderr
+  changed_when: tigera_result.rc == 0
+
+- name: Download Calico custom resources
+  get_url:
+    url: https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/custom-resources.yaml
+    dest: /tmp/calico-custom-resources.yaml
+
+- name: Update Pod CIDR in Calico config
+  replace:
+    path: /tmp/calico-custom-resources.yaml
+    regexp: '192.168.0.0/16'
+    replace: '{{ pod_network_cidr }}'
+
+- name: Apply Calico custom resources
+  become_user: ansible
+  command: kubectl create -f /tmp/calico-custom-resources.yaml
+  register: calico_result
+  failed_when: calico_result.rc != 0 and 'already exists' not in calico_result.stderr
+  changed_when: calico_result.rc == 0
+
+- name: Wait for Calico pods to be ready
+  become_user: ansible
+  command: kubectl wait --for=condition=Ready pods --all -n calico-system --timeout=300s
+  retries: 5
+  delay: 30
+  register: calico_wait
+  until: calico_wait.rc == 0

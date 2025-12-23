@@ -1,0 +1,29 @@
+---
+- name: Configure all K8s nodes
+  hosts: k8s_cluster
+  become: yes
+  roles:
+    - common
+    - container-runtime
+    - kubernetes
+
+- name: Initialize Kubernetes Master
+  hosts: masters
+  become: yes
+  roles:
+    - master
+
+- name: Join Workers to cluster
+  hosts: workers
+  become: yes
+  roles:
+    - worker
+
+- name: Install CNI and Cluster Components
+  hosts: masters
+  become: yes
+  roles:
+    - cni
+    - metallb
+    - ingress
+    - argocd
